@@ -14,8 +14,32 @@ connection.connect();
 router.get('/', function(req, res, next) {
   res.render('index', { title: 'ConfirmBox' });
 });
-
+var crypto = require('crypto');
 router.post('/login', function(req, res) {
+	var en = req.body.en;
+	var pw = req.body.pw;
+	var hash = crypto.createHash('sha256').
+		update(pw).digest('base64');
+	console.log('en='+en+',pw='+pw);
+	connection.query(
+		'select en,name,pw from users where en=? and pw=?',
+		[ en,hash ],
+		function(err,results,fields) {
+			if (err) {
+				res.send(JSON.stringify(err));
+			} else {
+				if (results.length > 0) {
+					console.log(JSON.stringify(results[0]));
+					res.send(JSON.stringify(results[0]));	
+				} else {
+					res.send(JSON.stringify({}));
+				}				
+			}
+		}
+	);
+});
+
+router.post('/confirm', function(req, res) {
 	var en = req.body.en;
 	var pw = req.body.pw;
 	connection.query(
@@ -38,7 +62,18 @@ router.post('/login', function(req, res) {
 router.get('/list', function(req, res) {
 	var en = req.query.en;
 	connection.query(
-		'select en,task_id,cfm_seq,cfm_text,cfm_yn,cfm_opinion from confirm where en=?',
+'select confirm.en           as en           ' +
+'    ,  confirm.task_id      as task_id      ' +
+'    ,  confirm.cfm_seq      as cfm_seq      ' +
+'    ,  confirm.cfm_en       as cfm_en       ' +
+'    ,  users.name           as cfm_name     ' +
+'    ,  confirm.cfm_title    as cfm_title    ' +
+'    ,  confirm.cfm_text     as cfm_text     ' +
+'from   confirm                              ' +
+'left join users                             ' +
+'on     confirm.cfm_en = users.en            ' +
+'where  confirm.en=?                         ' +
+'and    confirm.cfm_yn is null               ',
 		[ en ],
 		function(err,results,fields) {
 			if (err) {
@@ -71,6 +106,35 @@ router.put('/confirm', function(req, res) {
 			}
 		}
 	);
+});
+
+router.put('/confirms', function(req, res) {
+	var confirmData = req.body.confirmData;
+	var data = JSON.parse(confirmData);
+	if (data.hasOwnProperty("Reference")) {
+      for(var i = 0; i < data.Reference.length; i++; ) {
+        try {
+            var reference = data.Reference[i];
+            connection.query(
+				'update confirm set cfm_yn="Y",cfm_opinion="결재" where en=? and task_id=? and cfm_seq=?',
+				[ reference.en, reference.task_id, reference.cfm_seq ],
+				function(err,result) {
+					if (err) {
+						res.send(JSON.stringify(err));
+					} else {
+						res.send(JSON.stringify(result));
+					}
+				}
+			);
+        } catch(e) {
+            //In case if any invalid references, then continue with others
+            console.warn("Error processing reference - " + e);
+        }
+      }
+    } else {
+      console.warn("No References were found!");
+    }
+	
 });
 
 router.put('/reject', function(req, res) {
