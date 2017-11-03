@@ -22,7 +22,7 @@ router.post('/login', function(req, res) {
 		update(pw).digest('base64');
 	console.log('en='+en+',pw='+pw);
 	connection.query(
-		'select en,name,pw from users where en=? and pw=?',
+		'select en,name from users where en=? and pw=?',
 		[ en,hash ],
 		function(err,results,fields) {
 			if (err) {
@@ -39,7 +39,7 @@ router.post('/login', function(req, res) {
 });
 
 router.get('/user',function(req,res) {
-	connection.query('select * from users', 
+	connection.query('select en,name from users', 
 		function(err,results,fields) {
 			if (err) {
 				res.send(JSON.stringify(err));
@@ -50,7 +50,7 @@ router.get('/user',function(req,res) {
 });
 
 router.get('/user/:en',function(req,res){
-	connection.query('select * from users where en=?',
+	connection.query('select en,name from users where en=?',
 		[ req.params.en ], function(err, results, fields) {
 			if (err) {
 				res.send(JSON.stringify(err));
@@ -146,17 +146,17 @@ router.post('/confirm', function(req, res) {
 			if (err) {
 				res.send(JSON.stringify(err));
 			} else {
-				cfm_seq = results[0].cfm_seq;			
-			}
-		});
-	connection.query(
-		'insert into confirm(en,task_id,cfm_seq,cfm_en,cfm_title,cfm_text) values(?,?,?,?,?,?)',
-		[ req.body.en, req.body.task_id, cfm_seq, req.body.cfm_en, req.body.cfm_title, req.body.cfm_text ],
-		function(err,result) {
-			if (err) {
-				res.send(JSON.stringify(err));
-			} else {
-				res.send(JSON.stringify(result));
+				cfm_seq = results[0].cfm_seq;
+				connection.query(
+					'insert into confirm(en,task_id,cfm_seq,cfm_en,cfm_title,cfm_text) values(?,?,?,?,?,?)',
+					[ req.body.en, req.body.task_id, cfm_seq, req.body.cfm_en, req.body.cfm_title, req.body.cfm_text ],
+					function(err,result) {
+						if (err) {
+							res.send(JSON.stringify(err));
+						} else {
+							res.send(JSON.stringify(result));
+						}
+					});			
 			}
 		});
 });
@@ -177,7 +177,7 @@ router.delete('/confirm', function(req, res) {
 router.put('/confirm', function(req, res) {
 	connection.query(
 		'update confirm set cfm_yn="Y",cfm_opinion=? where en=? and task_id=? and cfm_seq=?',
-		[ req.body.en, req.body.task_id, req.body.cfm_seq, req.body.cfm_opinion ],
+		[ req.body.cfm_opinion, req.body.en, req.body.task_id, req.body.cfm_seq ],
 		function(err,result) {
 			if (err) {
 				res.send(JSON.stringify(err));
@@ -190,7 +190,7 @@ router.put('/confirm', function(req, res) {
 router.put('/reject', function(req, res) {
 	connection.query(
 		'update confirm set cfm_yn="N",cfm_opinion=? where en=? and task_id=? and cfm_seq=?',
-		[ req.body.en, req.body.task_id, req.body.cfm_seq, req.body.cfm_opinion ],
+		[ req.body.cfm_opinion, req.body.en, req.body.task_id, req.body.cfm_seq ],
 		function(err,result) {
 			if (err) {
 				res.send(JSON.stringify(err));
@@ -229,10 +229,10 @@ router.get('/confirms', function(req, res) {
 		});
 });
 
+
 router.put('/confirms', function(req, res) {
 	var confirmData = req.body.confirmData;
-	    confirmData = JSON.parse(confirmData);
-	var results = [];
+	    confirmData = JSON.parse(confirmData);	
 	for(var i = 0; i < confirmData.length; i++ ) {
         var data = confirmData[i];
         connection.query(
@@ -242,18 +242,17 @@ router.put('/confirms', function(req, res) {
 				if (err) {
 					res.send(JSON.stringify(err));
 				} else {
-					results[i] = result;
-					//res.send(JSON.stringify(result));
+					console.log('result='+JSON.stringify(result));
 				}
 			});
+	    
     }
-    res.send(JSON.stringify(results));
+    res.send(JSON.stringify({result:true}));
 });
 
 router.put('/rejects', function(req, res) {
 	var rejectData = req.body.rejectData;
 	    rejectData = JSON.parse(rejectData);
-	var results = [];
 	for(var i = 0; i < rejectData.length; i++ ) {
         var data = rejectData[i];
         connection.query(
@@ -263,11 +262,11 @@ router.put('/rejects', function(req, res) {
 				if (err) {
 					res.send(JSON.stringify(err));
 				} else {
-					res.send(JSON.stringify(result));
+					console.log('result='+JSON.stringify(result));
 				}
 			});
     }
-    res.send(JSON.stringify(results));
+    res.send(JSON.stringify({result:true}));
 });
 
 router.get('/pushset', function(req, res) {
@@ -288,47 +287,55 @@ router.get('/pushset', function(req, res) {
 		});
 });
 
+var async = require('async');
 router.put('/pushset', function(req, res) {
 	var en = req.body.en;
-	var results = [];
 	var pushsetData = req.body.pushsetData;
 		pushsetData = JSON.parse(pushsetData);
-	for (var i = 0; i < pushsetData.length; i++) {
-		var data = pushsetData[i]
-		connection.query(
-			'select a.en, a.task_id, a.push_yn, b.task_name from pushsets a right outer join task b on a.task_id = b.task_id where a.en = ? and a.task_id = ?',
-			[ req.body.en, data.task_id ],
-			function(err,results,fields) {
-				if (err) {
-					res.send(JSON.stringify(err));
-				} else {
-					if (results.length > 0) {
-						connection.query(
-							'update pushsets set push_yn=? where en=? and task_id=?',
-							[ data.push_yn, req.body.en, data.task_id ],
-							function(err,result) {
-								if (err) {
-									res.send(JSON.stringify(err));
-								} else {
-									results[i] = result;
-								}
-							});
-					} else {
-						connection.query(
-							'insert into pushsets(en,task_id,push_yn) values(?,?,?)',
-							[ req.body.en, data.task_id, data.push_yn ],
-							function(err,result) {
-								if (err) {
-									res.send(JSON.stringify(err));
-								} else {
-									results[i] = result;
-								}
-							});
-					}
-				}
-			});
-	}
-	res.send(JSON.stringify(results));
+
+	async.each(pushsetData, processQuery, function(err) {
+		if(err) {
+			res.send(JSON.stringify(err));
+		} else {
+			res.send(JSON.stringify({result:true}));
+		}
+	});	
 });
+
+function processQuery(data, doneCallback) {
+	connection.query(
+		'select en, task_id, push_yn from pushsets where en = ? and task_id = ?',
+		[ data.en, data.task_id ],
+		function(err,results,fields) {
+			if (err) {
+				res.send(JSON.stringify(err));
+			} else {
+				if (results.length > 0) {
+					connection.query(
+						'update pushsets set push_yn=? where en=? and task_id=?',
+						[ data.push_yn, data.en, data.task_id ],
+						function(err,result) {
+							if (err) {
+								console.log(JSON.stringify(err));
+							} else {
+								console.log('result='+JSON.stringify(result));
+							}
+						});
+				} else {
+					connection.query(
+						'insert into pushsets(en,task_id,push_yn) values(?,?,?)',
+						[ data.en, data.task_id, data.push_yn ],
+						function(err,result) {
+							if (err) {
+								console.log(JSON.stringify(err));
+							} else {
+								console.log('result='+JSON.stringify(result));
+							}
+						});
+				}
+			}
+		});
+	doneCallback(null);
+}
 
 module.exports = router;
