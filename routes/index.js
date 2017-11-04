@@ -18,19 +18,29 @@ var crypto = require('crypto');
 router.post('/login', function(req, res) {
 	var en = req.body.en;
 	var pw = req.body.pw;
+	var device_token = req.body.device_token;
 	var hash = crypto.createHash('sha256').
 		update(pw).digest('base64');
 	console.log('en='+en+',pw='+pw);
 	connection.query(
-		'select en,name from users where en=? and pw=?',
+		'select en,name,device_token from users where en=? and pw=?',
 		[ en,hash ],
 		function(err,results,fields) {
 			if (err) {
 				res.send(JSON.stringify(err));
 			} else {
 				if (results.length > 0) {
-					console.log(JSON.stringify(results[0]));
-					res.send(JSON.stringify(results[0]));	
+					console.log('device_token='+device_token);
+					connection.query(
+						'update users set device_token=? where en=?',
+						[ device_token,en ],
+						function(err,result) {
+							if (err) {
+								res.send(JSON.stringify({}));
+							} else {
+								res.send(JSON.stringify(results[0]));
+							}
+						});	
 				} else {
 					res.send(JSON.stringify({}));
 				}				
@@ -182,7 +192,7 @@ router.put('/confirm', function(req, res) {
 			if (err) {
 				res.send(JSON.stringify(err));
 			} else {
-				res.send(JSON.stringify(result));
+				res.send(JSON.stringify({result:true}));
 			}
 		});
 });
@@ -195,7 +205,7 @@ router.put('/reject', function(req, res) {
 			if (err) {
 				res.send(JSON.stringify(err));
 			} else {
-				res.send(JSON.stringify(result));
+				res.send(JSON.stringify({result:true}));
 			}
 		});
 });
@@ -317,8 +327,10 @@ function processQuery(data, doneCallback) {
 						function(err,result) {
 							if (err) {
 								console.log(JSON.stringify(err));
+								doneCallback(err);
 							} else {
 								console.log('result='+JSON.stringify(result));
+								doneCallback(null);
 							}
 						});
 				} else {
@@ -328,14 +340,18 @@ function processQuery(data, doneCallback) {
 						function(err,result) {
 							if (err) {
 								console.log(JSON.stringify(err));
+								doneCallback(err);
 							} else {
 								console.log('result='+JSON.stringify(result));
+								doneCallback(null);
 							}
 						});
 				}
 			}
 		});
-	doneCallback(null);
+	
 }
 
 module.exports = router;
+//key=AAAA4sJGHTo:APA91bHQAxhETAlFme2D5sMtJmU_Qp2OdON-BSs3QrsnJH0jLS27Sm7pJLp76PWcQ-VcHBFsgxubPexakiVmUk9tA9xpz6CVsHMcwByGcci5MDgdLw0CzNvnnFbWVqa4kAZD7xJeP0st
+//ckZ7_7REEZk:APA91bF8ZByGcyHPcbH3Uk1bFMtlGGcd-eXAA4z7rY_zGRVJbufd2NIeclWirytgvno1i6mNz3Q_T9-G3qV9CgEzfEjbhRhZf0JTOafMM72MBRLIOzU40DyMVZt0ZeOOJjMXU7q4Gzlh
