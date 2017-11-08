@@ -147,6 +147,9 @@ router.get('/confirm', function(req, res) {
 		});
 });
 
+var FCM = require('fcm-node');
+var serverKey = 'AAAA4sJGHTo:APA91bHQAxhETAlFme2D5sMtJmU_Qp2OdON-BSs3QrsnJH0jLS27Sm7pJLp76PWcQ-VcHBFsgxubPexakiVmUk9tA9xpz6CVsHMcwByGcci5MDgdLw0CzNvnnFbWVqa4kAZD7xJeP0st'; //put your server key here
+var fcm = new FCM(serverKey);
 router.post('/confirm', function(req, res) {
 	var cfm_seq = '';
 	connection.query(
@@ -164,7 +167,60 @@ router.post('/confirm', function(req, res) {
 						if (err) {
 							res.send(JSON.stringify(err));
 						} else {
-							res.send(JSON.stringify(result));
+							var message = { //this may vary according to the message type (single recipient, multicast, topic, et cetera)
+						        to: 'ckZ7_7REEZk:APA91bF8ZByGcyHPcbH3Uk1bFMtlGGcd-eXAA4z7rY_zGRVJbufd2NIeclWirytgvno1i6mNz3Q_T9-G3qV9CgEzfEjbhRhZf0JTOafMM72MBRLIOzU40DyMVZt0ZeOOJjMXU7q4Gzlh', 
+						        collapse_key: 'shinhan_collapse_key',
+						        notification: {
+						            title: '결재요청', 
+						            body: req.body.cfm_title
+						        },				        
+						        data: {  //you can send only notification or only data(or include both)
+						            data1: 'value1',
+						            data2: 'value2'
+						        }
+						    };
+						    fcm.send(message, function(err, response){
+						        if (err) {
+						            res.send(JSON.stringify({result:false,err:err}));
+						        } else {
+						        	res.send(JSON.stringify({result:true,response:response}));
+						        }
+						    });
+							/*
+							connection.query(
+								'select device_token from users where en=?',
+								[ req.body.en ], 
+								function(err, results, fields) {
+									if (err) {
+										res.send(JSON.stringify({result:false,err:err}));
+									} else {
+										if (results.length > 0) {
+											var message = { //this may vary according to the message type (single recipient, multicast, topic, et cetera)
+										        to: results[0].device_token, 
+										        collapse_key: 'shinhan_collapse_key',
+										        notification: {
+										            title: 'PUSH NOTI TEST', 
+										            body: 'this is a body of your push notification' 
+										        },				        
+										        data: {  //you can send only notification or only data(or include both)
+										            data1: 'value1',
+										            data2: 'value2'
+										        }
+										    };
+										    fcm.send(message, function(err, response){
+										        if (err) {
+										            res.send(JSON.stringify({result:false,err:err}));
+										        } else {
+										        	res.send(JSON.stringify({result:true,response:response}));
+										        }
+										    });
+										} else {
+											res.send(JSON.stringify({result:false,err:'do not exist device token'}));
+										}
+									}
+								});
+							*/
+							//res.send(JSON.stringify(result));
 						}
 					});			
 			}

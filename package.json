@@ -11,6 +11,7 @@
     "cookie-parser": "~1.4.3",
     "debug": "~2.6.9",
     "express": "~4.15.5",
+    "fcm-node": "^1.2.1",
     "jade": "~1.11.0",
     "mongodb": "^2.2.33",
     "morgan": "~1.9.0",
