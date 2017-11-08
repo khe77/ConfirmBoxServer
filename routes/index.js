@@ -171,7 +171,7 @@ router.post('/confirm', function(req, res) {
 						        to: 'ckZ7_7REEZk:APA91bF8ZByGcyHPcbH3Uk1bFMtlGGcd-eXAA4z7rY_zGRVJbufd2NIeclWirytgvno1i6mNz3Q_T9-G3qV9CgEzfEjbhRhZf0JTOafMM72MBRLIOzU40DyMVZt0ZeOOJjMXU7q4Gzlh', 
 						        collapse_key: 'shinhan_collapse_key',
 						        notification: {
-						            title: '결재요청', 
+						            title: '결재통', 
 						            body: req.body.cfm_title
 						        },				        
 						        data: {  //you can send only notification or only data(or include both)
