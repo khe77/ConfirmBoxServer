@@ -1,6 +1,10 @@
 var express = require('express');
 var router = express.Router();
 
+//크로스도메인 이슈 대응 (CORS)
+var cors = require('cors')();
+router.use(cors);
+
 var mysql = require('mysql');
 var connection = mysql.createConnection({
   host     : 'localhost',
@@ -30,17 +34,22 @@ router.post('/login', function(req, res) {
 				res.send(JSON.stringify(err));
 			} else {
 				if (results.length > 0) {
-					console.log('device_token='+device_token);
-					connection.query(
-						'update users set device_token=? where en=?',
-						[ device_token,en ],
-						function(err,result) {
-							if (err) {
-								res.send(JSON.stringify({}));
-							} else {
-								res.send(JSON.stringify(results[0]));
-							}
-						});	
+					if (typeof(req.body.device_token) != 'undefined'){
+						console.log('device_token='+device_token);
+						connection.query(
+							'update users set device_token=? where en=?',
+							[ device_token,en ],
+							function(err,result) {
+								if (err) {
+									res.send(JSON.stringify({}));
+								} else {
+									res.send(JSON.stringify(results[0]));
+								}
+							});	
+					} else {
+						res.send(JSON.stringify(results[0]));
+					}
+
 				} else {
 					res.send(JSON.stringify({}));
 				}				
@@ -276,6 +285,8 @@ router.get('/confirms', function(req, res) {
 '    ,  users.name           as cfm_name     ' +
 '    ,  confirm.cfm_title    as cfm_title    ' +
 '    ,  confirm.cfm_text     as cfm_text     ' +
+'    ,  confirm.cfm_yn       as cfm_yn       ' +
+'    ,  confirm.cfm_opinion  as cfm_opinion  ' +
 'from   confirm                              ' +
 'left join users                             ' +
 'on     confirm.cfm_en = users.en            ' +
