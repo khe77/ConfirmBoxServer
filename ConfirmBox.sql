@@ -1,31 +1,35 @@
-create database confirmbox;
+CREATE DATABASE `confirmbox` /*!40100 DEFAULT CHARACTER SET utf8 */;
 
-use confirmbox;
-
-
-create table users(
-en integer primary key auto_increment,
-name text,
-pw varchar(20)
+CREATE TABLE `confirm` (
+  `en` int(11) NOT NULL,
+  `task_id` int(11) NOT NULL,
+  `cfm_seq` int(11) NOT NULL,
+  `cfm_en` int(11) DEFAULT NULL,
+  `cfm_title` text,
+  `cfm_text` text,
+  `cfm_yn` char(1) DEFAULT NULL,
+  `cfm_opinion` text,
+  PRIMARY KEY (`en`,`task_id`,`cfm_seq`),
+  KEY `idx_confirm_cfm_en` (`cfm_en`)
 );
 
-create table confirm(
-en integer primary key auto_increment,
-cfm_seq integer primary key auto_increment,
-cfm_yn char(1),
-cfm_text text
+CREATE TABLE `pushsets` (
+  `en` int(11) NOT NULL,
+  `task_id` int(11) NOT NULL,
+  `push_yn` char(1) DEFAULT NULL,
+  PRIMARY KEY (`en`,`task_id`)
 );
 
-create table pushsets(
-en integer primary key auto_increment,
-pushset_id integer primary key,
-pushset_yn char(1)
+CREATE TABLE `task` (
+  `task_id` int(11) NOT NULL,
+  `task_name` text,
+  PRIMARY KEY (`task_id`)
 );
 
-create table pushset(
-pushset_id integer primary key,
-pushset_name text
+CREATE TABLE `users` (
+  `en` int(11) NOT NULL,
+  `name` text,
+  `pw` text,
+  `device_token` varchar(256) DEFAULT NULL,
+  PRIMARY KEY (`en`)
 );
-
-
-

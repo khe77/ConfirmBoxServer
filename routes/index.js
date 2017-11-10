@@ -167,6 +167,7 @@ router.post('/confirm', function(req, res) {
 						if (err) {
 							res.send(JSON.stringify(err));
 						} else {
+							/*
 							var message = { //this may vary according to the message type (single recipient, multicast, topic, et cetera)
 						        to: 'ckZ7_7REEZk:APA91bF8ZByGcyHPcbH3Uk1bFMtlGGcd-eXAA4z7rY_zGRVJbufd2NIeclWirytgvno1i6mNz3Q_T9-G3qV9CgEzfEjbhRhZf0JTOafMM72MBRLIOzU40DyMVZt0ZeOOJjMXU7q4Gzlh', 
 						        collapse_key: 'shinhan_collapse_key',
@@ -186,10 +187,10 @@ router.post('/confirm', function(req, res) {
 						        	res.send(JSON.stringify({result:true,response:response}));
 						        }
 						    });
-							/*
+						    */
 							connection.query(
-								'select device_token from users where en=?',
-								[ req.body.en ], 
+								'select a.device_token, b.task_id from users a left outer join pushsets b on a.en = b.en where a.en= ? and b.task_id = ? and b.push_yn ="Y"',
+								[ req.body.en, req.body.task_id ], 
 								function(err, results, fields) {
 									if (err) {
 										res.send(JSON.stringify({result:false,err:err}));
@@ -199,8 +200,8 @@ router.post('/confirm', function(req, res) {
 										        to: results[0].device_token, 
 										        collapse_key: 'shinhan_collapse_key',
 										        notification: {
-										            title: 'PUSH NOTI TEST', 
-										            body: 'this is a body of your push notification' 
+										            title: '결재통', 
+						            				body: req.body.cfm_title
 										        },				        
 										        data: {  //you can send only notification or only data(or include both)
 										            data1: 'value1',
@@ -215,11 +216,10 @@ router.post('/confirm', function(req, res) {
 										        }
 										    });
 										} else {
-											res.send(JSON.stringify({result:false,err:'do not exist device token'}));
+											res.send(JSON.stringify({result:false}));
 										}
 									}
 								});
-							*/
 							//res.send(JSON.stringify(result));
 						}
 					});			
