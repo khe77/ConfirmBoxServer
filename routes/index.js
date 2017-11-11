@@ -156,6 +156,43 @@ router.get('/confirm', function(req, res) {
 		});
 });
 
+router.get('/confirm/:en', function(req, res) {
+	console.log('en='+req.params.en+',task_id='+req.query.task_id+',cfm_seq='+req.query.cfm_seq);
+	connection.query(
+'select confirm.en           as en           ' +
+'    ,  users.name           as name         ' +
+'    ,  confirm.task_id      as task_id      ' +
+'    ,  task.task_name       as task_name    ' +
+'    ,  confirm.cfm_seq      as cfm_seq      ' +
+'    ,  confirm.cfm_en       as cfm_en       ' +
+'    ,  confirm.cfm_title    as cfm_title    ' +
+'    ,  confirm.cfm_text     as cfm_text     ' +
+'    ,  confirm.cfm_yn       as cfm_yn       ' +
+'    ,  confirm.cfm_opinion  as cfm_opinion  ' +
+'from   confirm                              ' +
+'left join users                             ' +
+'on     confirm.en = users.en                ' +
+'left join task                              ' +
+'on     confirm.task_id = task.task_id       ' +
+'where  confirm.en=?                         ' +
+'and    confirm.task_id=?                    ' +
+'and    confirm.cfm_seq=?                    ',
+		[ req.params.en, req.query.task_id, req.query.cfm_seq ],
+		function(err,results,fields) {
+			if (err) {
+				res.send(JSON.stringify(err));
+			} else {
+				console.log(JSON.stringify(results));
+				if (results.length > 0) {
+
+					res.send(JSON.stringify(results[0]));	
+				} else {
+					res.send(JSON.stringify({}));
+				}				
+			}
+		});
+});
+
 var FCM = require('fcm-node');
 var serverKey = 'AAAA4sJGHTo:APA91bHQAxhETAlFme2D5sMtJmU_Qp2OdON-BSs3QrsnJH0jLS27Sm7pJLp76PWcQ-VcHBFsgxubPexakiVmUk9tA9xpz6CVsHMcwByGcci5MDgdLw0CzNvnnFbWVqa4kAZD7xJeP0st'; //put your server key here
 var fcm = new FCM(serverKey);
@@ -208,13 +245,12 @@ router.post('/confirm', function(req, res) {
 											var message = { //this may vary according to the message type (single recipient, multicast, topic, et cetera)
 										        to: results[0].device_token, 
 										        collapse_key: 'shinhan_collapse_key',
-										        notification: {
-										            title: '결재통', 
-						            				body: req.body.cfm_title
-										        },				        
+										        //notification: {
+										        //    title: '결재통', 
+						            			//	body: req.body.cfm_title
+										        //},				        
 										        data: {  //you can send only notification or only data(or include both)
-										            data1: 'value1',
-										            data2: 'value2'
+										            "data":req.body.cfm_title
 										        }
 										    };
 										    fcm.send(message, function(err, response){
@@ -289,9 +325,43 @@ router.get('/confirms', function(req, res) {
 '    ,  confirm.cfm_opinion  as cfm_opinion  ' +
 'from   confirm                              ' +
 'left join users                             ' +
-'on     confirm.cfm_en = users.en            ' +
+'on     confirm.cfm_en = users.en            ' +	
 'where  confirm.en=?                         ' +
 'and    confirm.cfm_yn is null               ',
+		[ en ],
+		function(err,results,fields) {
+			if (err) {
+				res.send(JSON.stringify(err));
+			} else {
+				if (results.length > 0) {
+					res.send(JSON.stringify(results));	
+				} else {
+					res.send(JSON.stringify({}));
+				}				
+			}
+		});
+});
+
+router.get('/confirms/:en', function(req, res) {
+	var en = req.params.en;
+	console.log('/confirms/:'+en);
+	connection.query(
+'select confirm.en           as en           ' +
+'    ,  users.name           as name         ' +
+'    ,  confirm.task_id      as task_id      ' +
+'    ,  task.task_name       as task_name    ' +
+'    ,  confirm.cfm_seq      as cfm_seq      ' +
+'    ,  confirm.cfm_en       as cfm_en       ' +
+'    ,  confirm.cfm_title    as cfm_title    ' +
+'    ,  confirm.cfm_text     as cfm_text     ' +
+'    ,  confirm.cfm_yn       as cfm_yn       ' +
+'    ,  confirm.cfm_opinion  as cfm_opinion  ' +
+'from   confirm                              ' +
+'left join users                             ' +
+'on     confirm.en = users.en                ' +
+'left join task                              ' +
+'on     confirm.task_id = task.task_id       ' +	
+'where  confirm.cfm_en=?                     ',
 		[ en ],
 		function(err,results,fields) {
 			if (err) {
@@ -328,10 +398,10 @@ router.put('/confirms', function(req, res) {
 });
 
 router.put('/rejects', function(req, res) {
-	var rejectData = req.body.rejectData;
-	    rejectData = JSON.parse(rejectData);
-	for(var i = 0; i < rejectData.length; i++ ) {
-        var data = rejectData[i];
+	var confirmData = req.body.confirmData;
+	    confirmData = JSON.parse(confirmData);	
+	for(var i = 0; i < confirmData.length; i++ ) {
+        var data = confirmData[i];
         connection.query(
 			'update confirm set cfm_yn="N",cfm_opinion="반려" where en=? and task_id=? and cfm_seq=?',
 			[ data.en, data.task_id, data.cfm_seq ],
@@ -342,6 +412,7 @@ router.put('/rejects', function(req, res) {
 					console.log('result='+JSON.stringify(result));
 				}
 			});
+	    
     }
     res.send(JSON.stringify({result:true}));
 });
